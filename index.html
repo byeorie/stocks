@@ -231,7 +231,7 @@ td.action-cell { text-align:center; }
     <div class="step"><div class="step-num">3</div><div class="step-text"><code>setup()</code> 함수 실행 → 시트 자동 생성</div></div>
     <div class="step"><div class="step-num">4</div><div class="step-text"><code>배포 &gt; 새 배포 &gt; 웹앱</code> → 액세스: <code>모든 사용자</code> → URL 복사</div></div>
     <input class="url-input" id="script-url" type="text" placeholder="https://script.google.com/macros/s/.../exec">
-    <button class="btn-start" onclick="startDashboard()">대시보드 시작 →</button>
+    <button class="btn-start" id="btn-start">대시보드 시작 →</button>
   </div>
 </div>
 
@@ -704,6 +704,8 @@ async function submitDelete() {
   closeModal(); loadData();
 }
 
+document.getElementById('btn-start').addEventListener('click', startDashboard);
+
 function startDashboard() {
   const url = document.getElementById('script-url').value.trim();
   if (!url.includes('script.google.com')) { alert('올바른 Apps Script URL을 입력해주세요.'); return; }
@@ -1118,6 +1120,4 @@ function openTradeEditModal(jsonStr) {
     delBtn.className = 'btn-del';
     delBtn.textContent = '삭제';
     delBtn.onclick = deleteTradeRow;
-    document.querySelector('#trade-modal-box .modal-actions').prepend(delBtn);
-  }
-  delBtn.style.display = 'bloc
+    document.querySelector('#trade-modal-box
