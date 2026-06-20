@@ -624,7 +624,6 @@ const FIELDS = {
   ],
 };
 
-// 기존 데이터에서 동적 옵션 수집
 function getDynamicOptions(sourceKey) {
   const all = [...allPortfolio, ...allSaving];
   const map = {
@@ -640,7 +639,6 @@ function renderDynamicSelect(f, val) {
   const optHtml = ['', ...opts].map(o =>
     `<option value="${o}"${val===o?' selected':''}>${o||'-- 선택 또는 직접입력 --'}</option>`
   ).join('');
-  // select + 직접입력 input 조합
   return `<div class="form-row">
     <label>${f.label}</label>
     <select id="mf-${f.id}-sel" onchange="onDynSelChange('${f.id}')">
@@ -672,7 +670,6 @@ function onModalTickerSelChange() {
     inp.style.display = 'none';
     inp.value = sel.value;
     const opt = sel.options[sel.selectedIndex];
-    // 종목명·시장 자동 채우기 (API 호출 없이 기존 데이터 사용)
     const nameEl = document.getElementById('mf-name');
     const marketEl = document.getElementById('mf-market');
     if (nameEl && !nameEl.value) nameEl.value = opt.dataset.name || '';
@@ -697,7 +694,6 @@ function openModal(type, mode, data={}) {
     }
     if (f.type==='dynamic-select') return renderDynamicSelect(f, val);
     if (f.type==='ticker-select') {
-      // sourceSheet: 'watchlist' → 관심종목에서, 'portfolio' → 포트폴리오에서
       const srcList = f.sourceSheet === 'both' ? [...allPortfolio, ...allWatchlist] : f.sourceSheet === 'watchlist' ? allWatchlist : allPortfolio;
       const seen = new Set();
       const unique = srcList.filter(s=>{ if(seen.has(s.ticker)) return false; seen.add(s.ticker); return true; });
@@ -716,7 +712,6 @@ function openModal(type, mode, data={}) {
     return `<div class="form-row"><label>${f.label}</label><input id="mf-${f.id}" type="${f.type}" value="${val}" placeholder="${f.placeholder}"></div>`;
   }).join('');
 
-  // ticker-select 이벤트 (edit 모드에서 선택된 값으로 종목명/시장 세팅)
   const tickerSelEl = document.getElementById('mf-ticker-sel');
   if (tickerSelEl && data.ticker) {
     const opt = tickerSelEl.querySelector(`option[value="${data.ticker}"]`);
@@ -731,9 +726,8 @@ async function onTickerBlur() {
   const nameEl   = document.getElementById('mf-name');
   if (!tickerEl || !nameEl) return;
   const ticker = tickerEl.value.trim();
-  if (!ticker || nameEl.value) return; // 이름이 이미 있으면 스킵
+  if (!ticker || nameEl.value) return;
 
-  // 시장 선택값 읽기 (없으면 US 기본)
   const marketEl = document.getElementById('mf-market');
   const market = marketEl ? marketEl.value : 'US';
 
@@ -753,7 +747,6 @@ async function onTickerBlur() {
 }
 
 function onMarketChange() {
-  // 시장 변경 시 이름 초기화 → 티커 재조회 유도
   const nameEl = document.getElementById('mf-name');
   if (nameEl) nameEl.value = '';
 }
@@ -817,14 +810,12 @@ function startDashboard() {
 
 function resetUrl() { localStorage.removeItem('scriptUrl'); location.reload(); }
 
-// 시작 버튼 바인딩 (DOM 로드 후 안전하게 연결)
 document.addEventListener('DOMContentLoaded', function() {
   const btn = document.getElementById('btn-start');
   if (btn) btn.addEventListener('click', startDashboard);
   const urlInput = document.getElementById('script-url');
   if (urlInput) urlInput.addEventListener('keydown', function(e){ if(e.key==='Enter') startDashboard(); });
 
-  // URL이 이미 있으면(=GAS 주입 또는 저장된 값) 바로 대시보드로
   if (SCRIPT_URL) {
     document.getElementById('setup-screen').style.display='none';
     document.getElementById('dashboard').style.display='block';
@@ -930,7 +921,6 @@ function renderPortfolio(data) {
   document.getElementById('portfolio-loading').style.display='none';
   const tbody=document.getElementById('portfolio-body');
 
-  // 수량 0인 종목 숨김
   data = data.filter(s => s.qty > 0);
 
   if(!data.length){
@@ -941,7 +931,6 @@ function renderPortfolio(data) {
     return;
   }
 
-  // 정렬
   if (portfolioSort.key) {
     data = [...data].sort((a,b)=>{
       let va, vb;
@@ -987,7 +976,6 @@ function renderPortfolio(data) {
   document.getElementById('total-pnl').className='card-value '+cls;
   document.getElementById('total-pnl').textContent=(pnl>=0?'+':'')+fmtKRW(pnl);
   document.getElementById('total-pnl-pct').textContent=(pnl>=0?'+':'')+fmt(pct,2)+'%';
-  // 실현손익
   const rpnl=realizedData.total||0;
   const rcls=rpnl>0?'up':rpnl<0?'down':'neutral';
   document.getElementById('realized-pnl').className='card-value '+rcls;
@@ -999,7 +987,6 @@ function renderPortfolio(data) {
   updateTotalAssets();
   renderRebalanceAdvice(data, totalVal, totalCost);
 
-  // 소유자 카드
   document.getElementById('owner-summary').innerHTML=Object.entries(ownerMap).map(([owner,d],i)=>{
     const p=d.cost?(d.val-d.cost)/d.cost*100:0;
     const c=p>0?'up':p<0?'down':'neutral';
@@ -1013,7 +1000,6 @@ function renderPortfolio(data) {
   renderCharts(data,ownerMap);
 }
 
-// ── 리밸런싱 조언 ──────────────────────────────────
 function renderRebalanceAdvice(data, totalVal, totalCost) {
   const box = document.getElementById('rebalance-advice');
   if (!box) return;
@@ -1021,29 +1007,24 @@ function renderRebalanceAdvice(data, totalVal, totalCost) {
 
   const advices = [];
 
-  // 1. 집중도 체크 (단일 종목이 40% 이상)
   data.forEach(s=>{
     const wt = totalVal ? (toKRW(s)*s.qty)/totalVal*100 : 0;
     if (wt >= 40) advices.push({ cls:'rb-warn', msg:`⚠️ <b>${s.name}</b>의 비중이 ${fmt(wt,1)}%로 매우 높습니다. 분산 투자를 고려하세요.` });
     else if (wt >= 25) advices.push({ cls:'rb-info', msg:`💡 <b>${s.name}</b> 비중 ${fmt(wt,1)}% — 단일 종목 집중 주의` });
   });
 
-  // 2. 시장 분산 체크
   const krCount = data.filter(s=>s.market==='KR').length;
   const usCount = data.filter(s=>s.market==='US').length;
   if (krCount===0) advices.push({ cls:'rb-info', msg:'💡 국내 주식이 없습니다. 환율 리스크 분산을 고려해 보세요.' });
   if (usCount===0) advices.push({ cls:'rb-info', msg:'💡 해외 주식이 없습니다. 글로벌 분산 투자를 고려해 보세요.' });
 
-  // 3. 손익 평가
   const pct = totalCost ? (totalVal-totalCost)/totalCost*100 : 0;
   if (pct >= 30) advices.push({ cls:'rb-good', msg:`✅ 포트폴리오 전체 수익률 +${fmt(pct,1)}% — 수익 실현 및 리밸런싱 타이밍을 검토하세요.` });
   else if (pct <= -20) advices.push({ cls:'rb-warn', msg:`⚠️ 포트폴리오 전체 ${fmt(pct,1)}% 손실 — 손절 기준선 재검토 필요` });
   else advices.push({ cls:'rb-good', msg:`✅ 현재 수익률 ${pct>=0?'+':''}${fmt(pct,1)}% — 안정적인 상태입니다.` });
 
-  // 4. 적립식 현황
   if (allSaving.length > 0) advices.push({ cls:'rb-info', msg:`💡 적립식 ${allSaving.length}개 종목 운용 중. 월 적립금이 분산 투자에 기여하고 있습니다.` });
 
-  // 5. 실현손익
   const rpnl = realizedData.total||0;
   if (rpnl !== 0) advices.push({ cls: rpnl>0?'rb-good':'rb-warn', msg:`${rpnl>0?'✅':'⚠️'} 실현 손익 ${rpnl>=0?'+':''}${fmtKRW(rpnl)}` });
 
@@ -1123,7 +1104,6 @@ function renderSaving(data) {
   updateTotalAssets();
 }
 
-// ── 금융상품 ────────────────────────────────────────
 const FINANCE_FIELDS = {
   cma: [
     {id:'name',     label:'계좌명',     type:'text',   placeholder:'토스 CMA'},
@@ -1185,7 +1165,6 @@ function renderFinanceTable(subtype, data) {
     const tag = `<span class="finance-type-tag ${FINANCE_TAGS[subtype]}">${FINANCE_LABELS[subtype]}</span>`;
     const bal = parseFloat(s.balance) || 0;
     const rate = parseFloat(s.rate) || 0;
-    const interest = bal * rate / 100;
     if (subtype === 'cma') {
       return `<tr>
         <td>${s.name||'—'}${tag}</td>
@@ -1308,7 +1287,6 @@ async function submitFinanceDelete() {
   closeFinanceModal(); loadData();
 }
 
-// ── 총자산 합산 ────────────────────────────────────
 function updateTotalAssets() {
   const cash = parseFloat(document.getElementById('cash-input').value)||0;
   const total = pfTotalVal + svTotalVal + fnTotalVal + cash;
@@ -1334,7 +1312,6 @@ async function saveCash() {
   updateTotalAssets();
 }
 
-// ── 관심종목 ───────────────────────────────────────
 function renderWatchlist(data) {
   document.getElementById('watchlist-loading').style.display = 'none';
   const tbody = document.getElementById('watchlist-body');
@@ -1362,7 +1339,6 @@ function renderWatchlist(data) {
   document.getElementById('watchlist-table').style.display = 'table';
 }
 
-// ── 거래내역 ───────────────────────────────────────
 function renderTrades(data) {
   document.getElementById('trades-loading').style.display = 'none';
   const tbody = document.getElementById('trades-body');
@@ -1393,12 +1369,10 @@ function renderTrades(data) {
   document.getElementById('trades-table').style.display = 'table';
 }
 
-// ── 투자메모 ───────────────────────────────────────
 const MEMO_ICONS = { '매수이유': '📈', '손절계획': '🛑', '주가변동이유': '🔍', '매도이유': '📉' };
 
 function renderMemos() {
   const board = document.getElementById('memo-board');
-  // 종목 필터 옵션 채우기
   const filter = document.getElementById('memo-ticker-filter');
   const cur = filter.value;
   const tickers = [...new Set(allMemos.map(m => m.ticker).filter(Boolean))];
@@ -1425,13 +1399,11 @@ function renderMemos() {
     </div>`).join('');
 }
 
-// ── 메모 모달 ──────────────────────────────────────
 let memoModalState = { mode: 'add', original: null };
 
 function openMemoModal(data) {
   memoModalState = { mode: data ? 'edit' : 'add', original: data || null };
   const today = new Date().toISOString().slice(0, 10);
-  // 종목 select 채우기 (포트폴리오 + 관심종목)
   const sel = document.getElementById('mm-ticker-sel');
   const src = [...allPortfolio, ...allWatchlist];
   const seen = new Set();
@@ -1448,9 +1420,7 @@ function openMemoModal(data) {
   document.getElementById('memo-modal-overlay').classList.add('open');
 }
 
-function onMemoTickerChange() {
-  // 선택 시 별도 동작 없음 (이름/시장은 저장 시 옵션에서 가져옴)
-}
+function onMemoTickerChange() {}
 
 function closeMemoModal() {
   document.getElementById('memo-modal-overlay').classList.remove('open');
@@ -1472,7 +1442,6 @@ async function submitMemo() {
     content,
   };
   if (memoModalState.mode === 'edit') {
-    // 수정 = 기존 삭제 후 추가
     const o = memoModalState.original;
     await postData({ action: 'deleteMemo', ticker: o.ticker, date: o.date, type: o.type });
   }
@@ -1486,13 +1455,11 @@ async function deleteMemo(m) {
   loadData();
 }
 
-// ── 거래 모달 ──────────────────────────────────────
 let tradeModalState = { mode: 'add', original: null };
 
 function openTradeModal(data) {
   tradeModalState = { mode: data ? 'edit' : 'add', original: data || null };
   const today = new Date().toISOString().slice(0, 10);
-  // 종목 select (포트폴리오 기준)
   const tsel = document.getElementById('tm-ticker-sel');
   const seen = new Set();
   let opts = '<option value="">-- 포트폴리오에서 선택 --</option>';
@@ -1503,7 +1470,6 @@ function openTradeModal(data) {
   opts += '<option value="__new__">+ 직접 입력</option>';
   tsel.innerHTML = opts;
 
-  // 소유자 / 계좌 select
   fillTradeDyn('owner', getDynamicOptions('owners'));
   fillTradeDyn('account', getDynamicOptions('accounts'));
 
@@ -1560,9 +1526,54 @@ function onTradeTickerSelChange() {
   }
 }
 
-function onTradeTickerBlur() { /* 직접입력 티커 — 별도 처리 없음 */ }
+function onTradeTickerBlur() {}
 
 function onTradeDynChange(id) {
   const sel = document.getElementById('tm-' + id + '-sel');
   const inp = document.getElementById('tm-' + id);
-  if (sel.value === '__new__') { inp.sty
+  if (sel.value === '__new__') { inp.style.display = 'block'; inp.value = ''; inp.focus(); }
+  else { inp.style.display = 'none'; inp.value = sel.value; }
+}
+
+function getTradeTicker() {
+  const sel = document.getElementById('tm-ticker-sel');
+  return sel.value === '__new__' ? document.getElementById('tm-ticker').value.trim() : sel.value;
+}
+
+function getTradeDyn(id) {
+  const sel = document.getElementById('tm-' + id + '-sel');
+  return sel.value === '__new__' ? document.getElementById('tm-' + id).value.trim() : sel.value;
+}
+
+function closeTradeModal() {
+  document.getElementById('trade-modal-overlay').classList.remove('open');
+}
+
+async function submitTrade() {
+  const ticker = getTradeTicker();
+  const name = document.getElementById('tm-name').value.trim();
+  if (!ticker || !name) { alert('종목과 종목명은 필수입니다.'); return; }
+  const trade = {
+    date: document.getElementById('tm-date').value,
+    ticker,
+    name,
+    market: document.getElementById('tm-market').value,
+    owner: getTradeDyn('owner'),
+    account: getTradeDyn('account'),
+    type: document.getElementById('tm-type').value,
+    qty: parseFloat(document.getElementById('tm-qty').value) || 0,
+    price: parseFloat(document.getElementById('tm-price').value) || 0,
+    fee: parseFloat(document.getElementById('tm-fee').value) || 0,
+    memo: document.getElementById('tm-memo').value.trim(),
+  };
+  if (tradeModalState.mode === 'edit') {
+    const o = tradeModalState.original;
+    await postData({ action: 'updateTrade', trade, origDate: o.date, origTicker: o.ticker });
+  } else {
+    await postData({ action: 'addTrade', trade });
+  }
+  closeTradeModal(); loadData();
+}
+</script>
+</body>
+</html>
